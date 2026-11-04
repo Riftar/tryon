@@ -1,0 +1,40 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>tryon - offline garment preview</title>
+<link rel="icon" href="data:,">
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+<header>
+  <h1>👕 tryon</h1>
+  <p class="tag">Project a garment onto your webcam or a video. No internet, no uploads, no AI - just color tracking that runs in your browser.</p>
+</header>
+<main>
+  <div class="layout">
+    <aside class="panel">
+      <h2>1. Source</h2>
+      <div class="row">
+        <button class="srcbtn" data-src="webcam">Webcam</button>
+        <button class="srcbtn" data-src="video">Sample video</button>
+        <button class="srcbtn" data-src="photo">Sample photo</button>
+      </div>
+      <h2>2. Garment <span id="gar"></span></h2>
+      <div id="garments" class="garments"></div>
+      <h2>3. Adjust</h2>
+      <div id="controls"></div>
+      <p class="hint">Then <b>click the shirt</b> in the picture once. The tracker
+      follows that color and the garment rides on it.</p>
+    </aside>
+    <section class="stagebox">
+      <canvas id="stage" width="480" height="360"></canvas>
+      <div class="statusline"><span id="swatch"></span><span id="status">loading…</span></div>
+    </section>
+  </div>
+</main>
+<script src="js/tracker.js"></script>
+<script src="js/main.js"></script>
+</body>
+</html>
