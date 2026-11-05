@@ -117,6 +117,12 @@ class TestAPI(unittest.TestCase):
         for name in ("gs_slim.webm", "gs_avg.webm", "gs_plus.webm"):
             code, _, _ = get("/samples/real/" + name)
             self.assertEqual(code, 200, name)
+        # real-room footage (non-green-screen)
+        code, _, body = get("/samples/real/room.jpg")
+        self.assertEqual(code, 200)
+        self.assertTrue(body[:3] == b"\xff\xd8\xff")
+        code, _, _ = get("/samples/real/room.webm")
+        self.assertEqual(code, 200)
 
     def test_traversal_blocked(self):
         self.assertEqual(get("/../tryon/server.py")[0], 404)

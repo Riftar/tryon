@@ -96,6 +96,14 @@
         state.video.play();
         setStatus("studio video (" + body + ") - click the red shirt, pick a background below");
       }
+    } else if (kind === "roomvideo") {
+      state.video.src = "samples/real/room.webm";
+      state.video.play();
+      setStatus("real room footage - click the red shirt (background picker does not apply here)");
+    } else if (kind === "roomphoto") {
+      state.photo = new Image();
+      state.photo.onload = function () { setStatus("real room photo - click the red shirt (background picker does not apply here)"); };
+      state.photo.src = "samples/real/room.jpg";
     } else {
       state.photo = new Image();
       state.photo.onload = function () { setStatus("sample photo - click the red shirt to start"); };
@@ -121,7 +129,7 @@
 
   function sourceSize(el) {
     if (state.source === "photo" || state.source === "realphoto" ||
-        state.source === "gsphoto") {
+        state.source === "gsphoto" || state.source === "roomphoto") {
       return [el.naturalWidth || W, el.naturalHeight || H];
     }
     return [el.videoWidth || W, el.videoHeight || H];
@@ -250,7 +258,7 @@
     window.TRY.frames++;
     var el = sourceElement();
     var ready = state.source === "photo" || state.source === "realphoto" ||
-                state.source === "gsphoto"
+                state.source === "gsphoto" || state.source === "roomphoto"
               ? !!state.photo
               : el.readyState >= 2;
     if (ready) {
