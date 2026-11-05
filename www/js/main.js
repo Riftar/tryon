@@ -7,13 +7,14 @@
   var W = 480, H = 360, DW = 240, DH = 180, S = W / DW;
 
   var state = {
-    source: null,          // "webcam" | "video" | "photo"
+    source: null,          // "webcam" | "video" | "photo" | "gs" (green screen family)
     video: document.createElement("video"),
     photo: null,
     garment: null,         // HTMLImageElement
     target: null,
     tol: 0.08, scale: 1.0, offX: 0, offY: 0, opacity: 0.95,
-    quad: null             // smoothed quad in display coords
+    quad: null,            // smoothed quad in display coords
+    bg: null               // background Image (green-screen compositing)
   };
   state.video.muted = true; state.video.loop = true; state.video.playsInline = true;
 
@@ -22,9 +23,39 @@
   var det = document.createElement("canvas");
   det.width = DW; det.height = DH;
   var dctx = det.getContext("2d", { willReadFrequently: true });
+  var comp = document.createElement("canvas");   // per-frame person layer (keyed)
+  comp.width = W; comp.height = H;
+  var cctx = comp.getContext("2d", { willReadFrequently: true });
   var statusEl = document.getElementById("status");
 
   function setStatus(t) { statusEl.textContent = t; }
+
+  /* draw source into ctx at W x H preserving aspect (center-crop cover) */
+  function drawCover(c2, el, sw, sh) {
+    var s = Math.max(W / sw, H / sh);
+    var cw = W / s, ch = H / s;
+    var sx = (sw - cw) / 2, sy = (sh - ch) / 2;
+    c2.drawImage(el, sx, sy, cw, ch, 0, 0, W, H);
+  }
+
+  /* contain-fit (letterbox/pillarbox) for portrait sources */
+  function drawContainScaled(c2, el, sw, sh, tw, th) {
+    var s = Math.min(tw / sw, th / sh);
+    var dw = sw * s, dh = sh * s;
+    c2.drawImage(el, (tw - dw) / 2, (th - dh) / 2, dw, dh);
+  }
+
+  /* remove chroma-green: transparent where green dominates */
+  function keyGreen(canvasEl) {
+    var x = canvasEl.getContext("2d");
+    var d = x.getImageData(0, 0, canvasEl.width, canvasEl.height);
+    var p = d.data;
+    for (var i = 0; i < p.length; i += 4) {
+      var r = p[i], g = p[i + 1], b = p[i + 2];
+      if (g > 105 && g > r * 1.3 && g > b * 1.3) p[i + 3] = 0;
+    }
+    x.putImageData(d, 0, 0);
+  }
 
   function setSource(kind) {
     state.source = kind;
@@ -53,6 +84,18 @@
       state.photo = new Image();
       state.photo.onload = function () { setStatus("real photo - click the red shirt to start"); };
       state.photo.src = "samples/real/model_real.png";
+    } else if (kind === "gsphoto" || kind === "gsvideo") {
+      var m = document.querySelector(".modelbtn.active");
+      var body = m ? m.dataset.body : "slim";
+      if (kind === "gsphoto") {
+        state.photo = new Image();
+        state.photo.onload = function () { setStatus("studio model (" + body + ") - click the red shirt, pick a background below"); };
+        state.photo.src = "samples/real/gs_" + body + ".jpg";
+      } else {
+        state.video.src = "samples/real/gs_" + body + ".webm";
+        state.video.play();
+        setStatus("studio video (" + body + ") - click the red shirt, pick a background below");
+      }
     } else {
       state.photo = new Image();
       state.photo.onload = function () { setStatus("sample photo - click the red shirt to start"); };
@@ -72,8 +115,24 @@
     });
   }
 
+  function isGS() {
+    return state.source === "gsphoto" || state.source === "gsvideo";
+  }
+
+  function sourceSize(el) {
+    if (state.source === "photo" || state.source === "realphoto" ||
+        state.source === "gsphoto") {
+      return [el.naturalWidth || W, el.naturalHeight || H];
+    }
+    return [el.videoWidth || W, el.videoHeight || H];
+  }
+
   function pickTarget(mx, my) {          // display-canvas coords
-    dctx.drawImage(sourceElement(), 0, 0, DW, DH);
+    var el = sourceElement();
+    var swsh = sourceSize(el);
+    dctx.fillStyle = "#000";
+    dctx.fillRect(0, 0, DW, DH);
+    drawCoverScaled(dctx, el, swsh[0], swsh[1], DW, DH);
     var p = dctx.getImageData(Math.floor(mx / S), Math.floor(my / S), 1, 1).data;
     state.target = [p[0], p[1], p[2]];
     state.quad = null;
@@ -82,8 +141,17 @@
     setStatus("tracking color rgb(" + p[0] + "," + p[1] + "," + p[2] + ")");
   }
 
+  /* cover-fit into an arbitrary target size (used by det + main canvas) */
+  function drawCoverScaled(c2, el, sw, sh, tw, th) {
+    var s = Math.max(tw / sw, th / sh);
+    var cw = tw / s, ch = th / s;
+    var sx = (sw - cw) / 2, sy = (sh - ch) / 2;
+    c2.drawImage(el, sx, sy, cw, ch, 0, 0, tw, th);
+  }
+
   function sourceElement() {
-    return state.source === "photo" ? state.photo : state.video;
+    return state.source === "photo" || state.source === "realphoto" ||
+           state.source === "gsphoto" ? state.photo : state.video;
   }
 
   canvas.addEventListener("click", function (ev) {
@@ -115,6 +183,40 @@
   document.querySelectorAll(".srcbtn").forEach(function (b) {
     b.addEventListener("click", function () { setSource(b.dataset.src); });
   });
+  document.querySelectorAll(".modelbtn").forEach(function (b) {
+    b.addEventListener("click", function () {
+      document.querySelectorAll(".modelbtn").forEach(function (m) { m.classList.remove("active"); });
+      b.classList.add("active");
+      if (state.source === "gsphoto") setSource("gsphoto");
+      if (state.source === "gsvideo") setSource("gsvideo");
+    });
+  });
+
+  /* backgrounds: bundled list, click to select (deselect = plain dark) */
+  var BGS = ["bg_studio", "bg_park", "bg_beach", "bg_cafe", "bg_street"];
+  var bgWrap = document.getElementById("backgrounds");
+  var noneBtn = document.createElement("button");
+  noneBtn.className = "bgbtn active"; noneBtn.textContent = "none";
+  noneBtn.addEventListener("click", function () {
+    state.bg = null;
+    document.querySelectorAll(".bgbtn").forEach(function (b) { b.classList.remove("active"); });
+    noneBtn.classList.add("active");
+  });
+  bgWrap.appendChild(noneBtn);
+  BGS.forEach(function (name) {
+    var b = document.createElement("button");
+    b.className = "bgbtn";
+    b.style.backgroundImage = "url(samples/real/" + name + ".jpg)";
+    b.title = name.slice(3);
+    b.addEventListener("click", function () {
+      var img = new Image();
+      img.onload = function () { state.bg = img; };
+      img.src = "samples/real/" + name + ".jpg";
+      document.querySelectorAll(".bgbtn").forEach(function (x) { x.classList.remove("active"); });
+      b.classList.add("active");
+    });
+    bgWrap.appendChild(b);
+  });
 
   fetch("/api/garments").then(function (r) { return r.json(); }).then(function (d) {
     var wrap = document.getElementById("garments");
@@ -145,13 +247,29 @@
   function lerp(a, b, k) { return a + (b - a) * k; }
 
   function loop() {
+    window.TRY.frames++;
     var el = sourceElement();
-    var ready = state.source === "photo" ? !!state.photo
+    var ready = state.source === "photo" || state.source === "realphoto" ||
+                state.source === "gsphoto"
+              ? !!state.photo
               : el.readyState >= 2;
     if (ready) {
-      ctx.drawImage(el, 0, 0, W, H);
+      var swsh = sourceSize(el);
+      if (isGS()) {
+        /* green-screen composite: background -> keyed person -> overlays.
+           portrait sources are contain-fit so the model stays head-to-feet */
+        if (state.bg) drawCoverScaled(ctx, state.bg, state.bg.naturalWidth, state.bg.naturalHeight, W, H);
+        else { ctx.fillStyle = "#101822"; ctx.fillRect(0, 0, W, H); }
+        cctx.clearRect(0, 0, W, H);
+        drawContainScaled(cctx, el, swsh[0], swsh[1], W, H);
+        keyGreen(comp);
+        ctx.drawImage(comp, 0, 0);
+      } else {
+        drawCoverScaled(ctx, el, swsh[0], swsh[1], W, H);
+      }
       if (state.target) {
-        dctx.drawImage(el, 0, 0, DW, DH);
+        dctx.clearRect(0, 0, DW, DH);
+        drawCoverScaled(dctx, el, swsh[0], swsh[1], DW, DH);
         var q = TRY.track(dctx.getImageData(0, 0, DW, DH), state.target, state.tol);
         if (q) {
           q.cx *= S; q.cy *= S; q.hw *= S; q.hh *= S;
@@ -187,5 +305,7 @@
     ctx.restore();
   }
 
+  window.TRY.debug = state;   // dev inspection hook
+  window.TRY.frames = 0;
   requestAnimationFrame(loop);
 })();

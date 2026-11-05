@@ -107,6 +107,16 @@ class TestAPI(unittest.TestCase):
         self.assertEqual(code, 200)
         code, _, _ = get("/samples/real/model_real.webm")
         self.assertEqual(code, 200)
+        # studio models (green screen) + occasion backgrounds
+        for name in ("gs_slim.jpg", "gs_avg.jpg", "gs_plus.jpg",
+                     "bg_studio.jpg", "bg_park.jpg", "bg_beach.jpg",
+                     "bg_cafe.jpg", "bg_street.jpg"):
+            code, _, body = get("/samples/real/" + name)
+            self.assertEqual(code, 200, name)
+            self.assertTrue(body[:3] == b"\xff\xd8\xff", name)  # JPEG magic
+        for name in ("gs_slim.webm", "gs_avg.webm", "gs_plus.webm"):
+            code, _, _ = get("/samples/real/" + name)
+            self.assertEqual(code, 200, name)
 
     def test_traversal_blocked(self):
         self.assertEqual(get("/../tryon/server.py")[0], 404)

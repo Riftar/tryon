@@ -51,10 +51,22 @@ runtime.)
 
 `samples/real/` holds photorealistic test footage instead: one model
 photo and a motion-interpolated video (portrait crop, torso-centered)
-of a fictional adult in a solid red shirt. Generated with OpenAI Codex's
+of a fictional adult in a solid red shirt. Generated with [OC]'s
 built-in image generation on a sandbox machine (2026-11-05), so the
 person does not exist and the footage is license-clean. The tracker
 finds the shirt at tolerance 0.04 targeting rgb(236,14,43).
+
+## Studio models and backgrounds (green screen)
+
+`samples/real/` also carries three body-type studio models (slim,
+average, plus — each as a photo and a 10 s idle-sway video) shot on a
+chroma-green background, plus five occasion backgrounds (studio, park,
+beach, cafe, evening street). Generated through the NEXABOT API
+(2026-11-05). The client keys the green per frame, composites the
+selected background behind the person, and the shirt tracker works on
+the composited result unchanged — pick a body type, click the shirt,
+pick an occasion. All offline: the footage is bundled, generation was
+a one-time step.
 
 ## Honest limits (v1)
 
