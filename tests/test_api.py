@@ -103,6 +103,10 @@ class TestAPI(unittest.TestCase):
         self.assertTrue(body.startswith(b"\x89PNG"))
         code, _, _ = get("/samples/model.webm")
         self.assertEqual(code, 200)
+        code, ctype, body = get("/samples/real/model_real.png")
+        self.assertEqual(code, 200)
+        code, _, _ = get("/samples/real/model_real.webm")
+        self.assertEqual(code, 200)
 
     def test_traversal_blocked(self):
         self.assertEqual(get("/../tryon/server.py")[0], 404)

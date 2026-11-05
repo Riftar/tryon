@@ -49,6 +49,13 @@ ffmpeg -framerate 6 -i tests/frames/f_%03d.png -c:v libvpx-vp9 \
 (ffmpeg is a dev-time tool only; nothing in the repo depends on it at
 runtime.)
 
+`samples/real/` holds photorealistic test footage instead: one model
+photo and a motion-interpolated video (portrait crop, torso-centered)
+of a fictional adult in a solid red shirt. Generated with OpenAI Codex's
+built-in image generation on a sandbox machine (2026-11-05), so the
+person does not exist and the footage is license-clean. The tracker
+finds the shirt at tolerance 0.04 targeting rgb(236,14,43).
+
 ## Honest limits (v1)
 
 This is a decal, not cloth: no drape simulation, no occlusion handling

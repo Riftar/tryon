@@ -45,6 +45,14 @@
       state.video.src = "samples/model.webm";
       state.video.play();
       setStatus("sample video playing - click the red shirt to start");
+    } else if (kind === "realvideo") {
+      state.video.src = "samples/real/model_real.webm";
+      state.video.play();
+      setStatus("real (AI-generated) footage - click the red shirt to start");
+    } else if (kind === "realphoto") {
+      state.photo = new Image();
+      state.photo.onload = function () { setStatus("real photo - click the red shirt to start"); };
+      state.photo.src = "samples/real/model_real.png";
     } else {
       state.photo = new Image();
       state.photo.onload = function () { setStatus("sample photo - click the red shirt to start"); };
