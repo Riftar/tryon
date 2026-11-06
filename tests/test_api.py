@@ -68,7 +68,14 @@ class TestAPI(unittest.TestCase):
         self.assertEqual(code, 200)
         data = json.loads(body)
         ids = [g["id"] for g in data["garments"]]
-        self.assertEqual(ids, ["garment_checks", "garment_collar", "garment_stripes"])
+        self.assertEqual(ids, ["garment_checks", "garment_collar",
+                               "garment_real_beige_midi_dress",
+                               "garment_real_black_shirtdress",
+                               "garment_real_brown_shirtdress",
+                               "garment_real_layered_tee",
+                               "garment_real_navy_pattern_shirt",
+                               "garment_real_puffer_jacket",
+                               "garment_stripes"])
 
     def test_track_endpoint(self):
         code, data = post("/api/track", {"w": 40, "h": 30, "target": [200, 60, 60],
